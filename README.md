@@ -53,20 +53,6 @@ npm run dev
 ---
 
 
-## 🧾 NFT Ticket Metadata Example
-
-```json
-{
-  "name": "Backstage Pass – SolFest 2025",
-  "symbol": "SFTKT",
-  "description": "Exclusive backstage access for SolFest 2025",
-  "image": "https://example.com/image.png",
-  "attributes": [
-    { "trait_type": "Access", "value": "Backstage" },
-    { "trait_type": "Event", "value": "SolFest 2025" }
-  ]
-}
-```
 
 
 
