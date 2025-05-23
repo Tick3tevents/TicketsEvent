@@ -6,7 +6,7 @@ import WalletSelect from "./WalletSelect"
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const [scrolled, setScrolled] = useState(true)
   const [isWalletConnected, setIsWalletConnected] = useState(false)
 
   // Function to be passed to WalletSelect to update connection status
@@ -19,7 +19,7 @@ const Navbar = () => {
       if (window.scrollY > 20) {
         setScrolled(true)
       } else {
-        setScrolled(false)
+        setScrolled(true)
       }
     }
 
@@ -30,7 +30,7 @@ const Navbar = () => {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-white/90 backdrop-blur-md shadow-md py-3 text-gray-900" : "bg-transparent py-6 text-white"
+        scrolled ? "bg-white/90 backdrop-blur-md shadow-md py-3 text-gray-900" : "bg-transparent py-6"
       }`}
     >
       <div className="container mx-auto px-4">
@@ -73,7 +73,7 @@ const Navbar = () => {
               Tickets
             </a>
             <a
-              href="#"
+              href="/new-event"
               className={`${
                 scrolled ? "text-gray-700 hover:text-blue-600" : "text-white/80 hover:text-white"
               } transition-colors font-medium`}

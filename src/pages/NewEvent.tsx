@@ -31,7 +31,6 @@ import {
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
 
-// Define ticket tier type
 interface TicketTier {
   id: string
   name: string
@@ -43,7 +42,6 @@ interface TicketTier {
   royaltyPercent: number
 }
 
-// Define event form data type
 interface EventFormData {
   title: string
   description: string
@@ -54,8 +52,8 @@ interface EventFormData {
   startTime: string
   endDate: string
   endTime: string
-  bannerImage: string | null
-  logoImage: string | null
+  bannerImage: string | null // This will be a local URL for preview
+  logoImage: string | null   // This will be a local URL for preview
   ticketTiers: TicketTier[]
   defaultRoyaltyPercent: number
   allowResale: boolean
@@ -63,7 +61,6 @@ interface EventFormData {
 }
 
 const NewEvent = () => {
-  // Initial empty ticket tier
   const emptyTier: TicketTier = {
     id: Date.now().toString(),
     name: "",
@@ -75,7 +72,6 @@ const NewEvent = () => {
     royaltyPercent: 5,
   }
 
-  // Form state
   const [formData, setFormData] = useState<EventFormData>({
     title: "",
     description: "",
@@ -94,38 +90,25 @@ const NewEvent = () => {
     useWhitelist: false,
   })
 
-  // Form validation state
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [apiError, setApiError] = useState<string | null>(null); // State for API errors
   const [activeSection, setActiveSection] = useState<"basic" | "tickets" | "advanced">("basic")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
   const [animateSection, setAnimateSection] = useState(false)
 
-  // Refs for file inputs and sections
   const bannerInputRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const basicSectionRef = useRef<HTMLDivElement>(null)
   const ticketsSectionRef = useRef<HTMLDivElement>(null)
   const advancedSectionRef = useRef<HTMLDivElement>(null)
 
-  // Available categories
   const categories = [
-    "Music",
-    "Conference",
-    "Workshop",
-    "Exhibition",
-    "Sports",
-    "Tech",
-    "Art",
-    "Gaming",
-    "Finance",
-    "Business",
-    "Entertainment",
-    "Other",
+    "Music", "Conference", "Workshop", "Exhibition", "Sports", "Tech",
+    "Art", "Gaming", "Finance", "Business", "Entertainment", "Other",
   ]
 
-  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -133,7 +116,6 @@ const NewEvent = () => {
       [name]: value,
     }))
 
-    // Clear error when field is updated
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev }
@@ -143,7 +125,6 @@ const NewEvent = () => {
     }
   }
 
-  // Handle toggle changes
   const handleToggleChange = (name: string, value: boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -151,7 +132,6 @@ const NewEvent = () => {
     }))
   }
 
-  // Handle ticket tier changes
   const handleTierChange = (id: string, field: keyof TicketTier, value: string | boolean | number) => {
     setFormData((prev) => ({
       ...prev,
@@ -159,7 +139,6 @@ const NewEvent = () => {
     }))
   }
 
-  // Add new ticket tier
   const addTicketTier = () => {
     const newTier: TicketTier = {
       ...emptyTier,
@@ -174,10 +153,9 @@ const NewEvent = () => {
     }))
   }
 
-  // Remove ticket tier
   const removeTicketTier = (id: string) => {
     if (formData.ticketTiers.length <= 1) {
-      return // Keep at least one tier
+      return
     }
 
     setFormData((prev) => ({
@@ -186,13 +164,10 @@ const NewEvent = () => {
     }))
   }
 
-  // Handle image upload
   const handleImageUpload = (type: "banner" | "logo", e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // In a real app, you would upload to a server/IPFS here
-    // For demo, we'll use a local URL
     const imageUrl = URL.createObjectURL(file)
 
     setFormData((prev) => ({
@@ -201,7 +176,6 @@ const NewEvent = () => {
     }))
   }
 
-  // Trigger file input click
   const triggerFileInput = (type: "banner" | "logo") => {
     if (type === "banner") {
       bannerInputRef.current?.click()
@@ -210,11 +184,9 @@ const NewEvent = () => {
     }
   }
 
-  // Validate form
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Basic info validation
     if (!formData.title.trim()) newErrors.title = "Title is required"
     if (!formData.description.trim()) newErrors.description = "Description is required"
     if (!formData.category) newErrors.category = "Category is required"
@@ -222,23 +194,21 @@ const NewEvent = () => {
     if (!formData.startDate) newErrors.startDate = "Start date is required"
     if (!formData.startTime) newErrors.startTime = "Start time is required"
 
-    // Ticket validation
     formData.ticketTiers.forEach((tier, index) => {
       if (!tier.name.trim()) newErrors[`tier-${index}-name`] = "Name is required"
-      if (!tier.price.trim()) newErrors[`tier-${index}-price`] = "Price is required"
-      if (!tier.supply.trim()) newErrors[`tier-${index}-supply`] = "Supply is required"
+      if (!tier.price.trim() || isNaN(parseFloat(tier.price))) newErrors[`tier-${index}-price`] = "Valid price is required"
+      if (!tier.supply.trim() || isNaN(parseInt(tier.supply, 10)) || parseInt(tier.supply, 10) < 1) newErrors[`tier-${index}-supply`] = "Valid supply (min 1) is required"
     })
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setApiError(null); // Clear previous API errors
 
     if (!validateForm()) {
-      // Scroll to the first error
       const firstErrorKey = Object.keys(errors)[0]
       const element = document.getElementById(firstErrorKey)
       element?.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -248,38 +218,76 @@ const NewEvent = () => {
     setIsSubmitting(true)
 
     try {
-      // In a real app, you would submit to your backend/blockchain here
-      await new Promise((resolve) => setTimeout(resolve, 2000)) // Simulate API call
+      const dataToSend = new FormData();
 
-      // Show success animation
-      setShowSuccessAnimation(true)
+      // IMPORTANT: Replace with a real connected wallet address
+      const organizerWalletAddress = "YOUR_CONNECTED_WALLET_ADDRESS_HERE"; // <<< Replace this!
+      if (!organizerWalletAddress || organizerWalletAddress === "YOUR_CONNECTED_WALLET_ADDRESS_HERE") {
+        throw new Error("Wallet not connected. Please connect your wallet.");
+      }
+      dataToSend.append("organizerWalletAddress", organizerWalletAddress);
 
-      // Reset or redirect after delay
+      dataToSend.append("title", formData.title);
+      dataToSend.append("description", formData.description);
+      dataToSend.append("category", formData.category);
+      dataToSend.append("locationType", formData.locationType);
+      dataToSend.append("location", formData.location);
+      dataToSend.append("startDate", formData.startDate);
+      dataToSend.append("startTime", formData.startTime);
+      dataToSend.append("endDate", formData.endDate);
+      dataToSend.append("endTime", formData.endTime);
+      dataToSend.append("defaultRoyaltyPercent", formData.defaultRoyaltyPercent.toString());
+      dataToSend.append("allowResale", formData.allowResale.toString());
+      dataToSend.append("useWhitelist", formData.useWhitelist.toString());
+
+      // Stringify ticketTiers array to send as a single string
+      dataToSend.append("ticketTiers", JSON.stringify(formData.ticketTiers));
+
+      // Append image files if selected
+      if (bannerInputRef.current?.files?.[0]) {
+        dataToSend.append("bannerImage", bannerInputRef.current.files[0]);
+      }
+      if (logoInputRef.current?.files?.[0]) {
+        dataToSend.append("logoImage", logoInputRef.current.files[0]);
+      }
+
+      const response = await fetch("/api/create", {
+        method: "POST",
+        body: dataToSend, // FormData handles Content-Type automatically
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || "Failed to create event.");
+      }
+
+      const result = await response.json();
+      console.log("Event created successfully:", result);
+
+      setShowSuccessAnimation(true);
+
       setTimeout(() => {
-        // In a real app, you might redirect here
-        // For demo, we'll just reset the success animation
-        setShowSuccessAnimation(false)
-        setIsSubmitting(false)
-      }, 3000)
-    } catch (error) {
-      console.error("Error creating event:", error)
-      setErrors({ submit: "Failed to create event. Please try again." })
-      setIsSubmitting(false)
+        setShowSuccessAnimation(false);
+        setIsSubmitting(false);
+        // Optionally, redirect to the new event's dashboard or event page
+        // router.push(`/event/${result.eventId}`);
+      }, 3000);
+    } catch (error: any) {
+      console.error("Error creating event:", error);
+      setApiError(error.message || "Failed to create event. Please try again.");
+      setIsSubmitting(false);
     }
   }
 
-  // Navigation between sections
   const navigateToSection = (section: "basic" | "tickets" | "advanced") => {
     setAnimateSection(false)
 
-    // Small delay for exit animation
     setTimeout(() => {
       setActiveSection(section)
       setAnimateSection(true)
     }, 300)
   }
 
-  // Animate section entry
   useEffect(() => {
     setAnimateSection(true)
   }, [])
@@ -288,13 +296,10 @@ const NewEvent = () => {
     <div className="min-h-screen bg-white text-gray-900">
       <Navbar />
       <main>
-        {/* Hero Section */}
         <section className="pt-24 pb-12 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 relative overflow-hidden">
-          {/* Background elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_120%,#3b82f6,#1e3a8a)]"></div>
 
-            {/* Ticket patterns */}
             <svg width="100%" height="100%" className="absolute inset-0 opacity-5">
               <pattern id="tickets-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
                 <path
@@ -330,7 +335,6 @@ const NewEvent = () => {
                 Set up your event details and create NFT tickets on Solana blockchain
               </p>
 
-              {/* Progress Navigation */}
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-1 flex mb-8 animate-fadeIn">
                 <button
                   onClick={() => navigateToSection("basic")}
@@ -384,7 +388,6 @@ const NewEvent = () => {
             </div>
           </div>
 
-          {/* Wave decoration */}
           <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
             <svg
               className="relative block w-full h-16 text-white"
@@ -400,11 +403,9 @@ const NewEvent = () => {
           </div>
         </section>
 
-        {/* Form Section */}
         <section className="py-12 bg-white">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
-              {/* Success Animation Overlay */}
               {showSuccessAnimation && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 bg-blue-900/80 backdrop-blur-sm animate-fadeIn">
                   <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full mx-4">
@@ -424,8 +425,17 @@ const NewEvent = () => {
                 </div>
               )}
 
+              {apiError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+                  <strong className="font-bold">Error! </strong>
+                  <span className="block sm:inline">{apiError}</span>
+                  <span className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setApiError(null)}>
+                    <X className="h-4 w-4 text-red-500 cursor-pointer" />
+                  </span>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-12">
-                {/* Basic Info Section */}
                 <div
                   ref={basicSectionRef}
                   className={`transition-all duration-500 ease-in-out transform ${
@@ -441,7 +451,6 @@ const NewEvent = () => {
                     </div>
 
                     <div className="p-6 space-y-6">
-                      {/* Event Title */}
                       <div className="group">
                         <label
                           htmlFor="title"
@@ -463,7 +472,6 @@ const NewEvent = () => {
                         {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
                       </div>
 
-                      {/* Event Description */}
                       <div className="group">
                         <label
                           htmlFor="description"
@@ -485,7 +493,6 @@ const NewEvent = () => {
                         {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
                       </div>
 
-                      {/* Category */}
                       <div className="group">
                         <label
                           htmlFor="category"
@@ -511,13 +518,12 @@ const NewEvent = () => {
                             ))}
                           </select>
                           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                            <ChevronRight className="h-4 w-4 ml-1 opacity-50" />
                           </div>
                         </div>
                         {errors.category && <p className="mt-1 text-sm text-red-500">{errors.category}</p>}
                       </div>
 
-                      {/* Location Type */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-3">Location Type</label>
                         <div className="flex space-x-4">
@@ -548,7 +554,6 @@ const NewEvent = () => {
                         </div>
                       </div>
 
-                      {/* Location */}
                       <div className="group">
                         <label
                           htmlFor="location"
@@ -584,7 +589,6 @@ const NewEvent = () => {
                         {errors.location && <p className="mt-1 text-sm text-red-500">{errors.location}</p>}
                       </div>
 
-                      {/* Date and Time */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="group">
                           <label
@@ -685,7 +689,6 @@ const NewEvent = () => {
                         </div>
                       </div>
 
-                      {/* Banner Image */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-3">Banner Image</label>
                         <input
@@ -729,7 +732,6 @@ const NewEvent = () => {
                         )}
                       </div>
 
-                      {/* Logo Image */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-3">Event Logo</label>
                         <input
@@ -801,7 +803,6 @@ const NewEvent = () => {
                   </div>
                 </div>
 
-                {/* Ticket Tiers Section */}
                 <div
                   ref={ticketsSectionRef}
                   className={`transition-all duration-500 ease-in-out transform ${
@@ -817,13 +818,11 @@ const NewEvent = () => {
                     </div>
 
                     <div className="p-6 space-y-8">
-                      {/* Ticket Tiers */}
                       {formData.ticketTiers.map((tier, index) => (
                         <div
                           key={tier.id}
                           className="border border-blue-100 rounded-lg p-6 relative hover:shadow-md transition-shadow duration-300 group"
                         >
-                          {/* Decorative ticket notches */}
                           <div className="absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-12 bg-white border-t border-b border-l border-blue-100 rounded-l-full"></div>
                           <div className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-12 bg-white border-t border-b border-r border-blue-100 rounded-r-full"></div>
 
@@ -846,7 +845,6 @@ const NewEvent = () => {
                           </h3>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Tier Name */}
                             <div className="group">
                               <label
                                 htmlFor={`tier-${index}-name`}
@@ -871,7 +869,6 @@ const NewEvent = () => {
                               )}
                             </div>
 
-                            {/* Tier Price */}
                             <div className="group">
                               <label
                                 htmlFor={`tier-${index}-price`}
@@ -901,7 +898,6 @@ const NewEvent = () => {
                               )}
                             </div>
 
-                            {/* Tier Supply */}
                             <div className="group">
                               <label
                                 htmlFor={`tier-${index}-supply`}
@@ -931,7 +927,6 @@ const NewEvent = () => {
                               )}
                             </div>
 
-                            {/* Tier Royalty */}
                             <div className="group">
                               <label
                                 htmlFor={`tier-${index}-royalty`}
@@ -960,7 +955,6 @@ const NewEvent = () => {
                             </div>
                           </div>
 
-                          {/* Tier Description */}
                           <div className="mt-6 group">
                             <label
                               htmlFor={`tier-${index}-description`}
@@ -978,7 +972,6 @@ const NewEvent = () => {
                             />
                           </div>
 
-                          {/* Tier Perks */}
                           <div className="mt-6 group">
                             <label
                               htmlFor={`tier-${index}-perks`}
@@ -996,7 +989,6 @@ const NewEvent = () => {
                             />
                           </div>
 
-                          {/* Resale Toggle */}
                           <div className="mt-6">
                             <div className="flex items-center justify-between">
                               <label className="text-sm font-medium text-gray-700">Allow Resale</label>
@@ -1020,7 +1012,6 @@ const NewEvent = () => {
                         </div>
                       ))}
 
-                      {/* Add Tier Button */}
                       <button
                         type="button"
                         onClick={addTicketTier}
@@ -1054,7 +1045,6 @@ const NewEvent = () => {
                   </div>
                 </div>
 
-                {/* Advanced Settings Section */}
                 <div
                   ref={advancedSectionRef}
                   className={`transition-all duration-500 ease-in-out transform ${
@@ -1070,7 +1060,6 @@ const NewEvent = () => {
                     </div>
 
                     <div className="p-6 space-y-8">
-                      {/* Default Royalty Percentage */}
                       <div className="group">
                         <div className="flex items-center justify-between mb-2">
                           <label
@@ -1104,7 +1093,6 @@ const NewEvent = () => {
                         </p>
                       </div>
 
-                      {/* Allow Resale Toggle */}
                       <div className="bg-blue-50 p-6 rounded-xl">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1131,7 +1119,6 @@ const NewEvent = () => {
                         </div>
                       </div>
 
-                      {/* Whitelist Toggle */}
                       <div className="bg-blue-50 p-6 rounded-xl">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1158,7 +1145,6 @@ const NewEvent = () => {
                         </div>
                       </div>
 
-                      {/* Whitelist Section */}
                       {formData.useWhitelist && (
                         <div className="bg-white p-6 rounded-xl border border-blue-200 shadow-inner">
                           <h3 className="text-sm font-medium text-gray-800 mb-2 flex items-center">
@@ -1177,7 +1163,6 @@ const NewEvent = () => {
                         </div>
                       )}
 
-                      {/* Preview Toggle */}
                       <div className="pt-4 border-t border-gray-200">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1246,7 +1231,6 @@ const NewEvent = () => {
   )
 }
 
-// Missing Eye icon component
 const EyeIcon = (props: any) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -1265,7 +1249,6 @@ const EyeIcon = (props: any) => (
   </svg>
 )
 
-// Globe icon component
 const GlobeIcon = (props: any) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
