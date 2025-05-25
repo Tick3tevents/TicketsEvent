@@ -21,7 +21,7 @@ const Footer = () => {
                     <path d="M9 20V9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <span className="ml-2 text-3xl font-bold tracking-wider text-blue-600">Ticket3</span>
+                <span className="ml-2 text-3xl font-bold tracking-wider text-blue-600">Tick3t</span>
               </div>
               <p className="text-gray-600 mb-6">
                 The future of event ticketing on Solana blockchain. Secure, transparent, and unforgeable.
