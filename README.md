@@ -1,12 +1,30 @@
-# React + Vite
+# **Ticket Event**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Discover tickets for a wide variety of events across the globe—and receive your NFT pass in seconds.
 
-Currently, two official plugins are available:
+A one-stop ticket sales platform for event hosts. Sell your tickets, track revenue, earn profit from resales, or disable resales entirely. Use our app for verification or build your own using our API—all designed for your comfort and ease of use.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### **Already in the App:**
 
-## Expanding the ESLint configuration
+* Event creation
+* Ticket feed
+* NFT minting (backend prepared only)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### **In Development:**
+
+* Final design of the ticket marketplace
+* Ticket minting connected to the frontend
+* MongoDB collections and data aggregation for real-time analytics on the host dashboard
+
+### **Future Plans:**
+
+* Mobile app for purchasing and verifying tickets
+* API access for developers to build their own solutions on top of our platform
+
+### **Tech Stack:**
+
+* React + TypeScript
+* Metaplex
+* Irys
+* Express.js
+* MongoDB
