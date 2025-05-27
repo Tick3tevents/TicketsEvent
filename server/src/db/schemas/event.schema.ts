@@ -1,6 +1,7 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface ITicketTier {
+  _id?: Types.ObjectId;
   name: string;
   description?: string;
   priceSOL: number;
@@ -10,6 +11,7 @@ export interface ITicketTier {
   resaleAllowed: boolean;
   royaltyPercent: number;
   revenueSOL: number;
+  purchaseIds?: Types.ObjectId[];
 }
 
 export interface IEvent extends Document {
@@ -39,6 +41,22 @@ export interface IEvent extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const ticketTierSchemaInstance = new Schema<ITicketTier>({
+  name: { type: String, required: true, trim: true },
+  description: { type: String },
+  priceSOL: { type: Number, required: true, min: 0 },
+  supply: { type: Number, required: true, min: 1 },
+  ticketsSold: { type: Number, default: 0 },
+  perks: { type: String },
+  resaleAllowed: { type: Boolean, default: true },
+  royaltyPercent: { type: Number, min: 0, max: 15, default: 5 },
+  revenueSOL: { type: Number, default: 0 },
+  purchaseIds: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Purchase',
+  }],
+}, { _id: true });
 
 const eventSchema = new Schema<IEvent>({
   organizerWalletAddress: {
@@ -137,20 +155,7 @@ const eventSchema = new Schema<IEvent>({
     type: Number,
     default: 0,
   },
-  ticketTiers: [
-    {
-      _id: false,
-      name: { type: String, required: true, trim: true },
-      description: { type: String },
-      priceSOL: { type: Number, required: true, min: 0 },
-      supply: { type: Number, required: true, min: 1 },
-      ticketsSold: { type: Number, default: 0 },
-      perks: { type: String },
-      resaleAllowed: { type: Boolean, default: true },
-      royaltyPercent: { type: Number, min: 0, max: 15, default: 5 },
-      revenueSOL: { type: Number, default: 0 },
-    },
-  ],
+  ticketTiers: [ticketTierSchemaInstance],
 }, { timestamps: true });
 
 const Event = mongoose.model<IEvent>('Event', eventSchema);
