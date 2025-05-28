@@ -335,3 +335,26 @@ select {
   background-size: 16px;
   padding-right: 30px;
 }
+
+@keyframes success-pop-animation {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-success-pop {
+  animation: success-pop-animation 0.6s ease-out forwards;
+}

@@ -50,7 +50,7 @@ const Navbar = () => {
               </svg>
             </div>
             <span className={`ml-2 text-2xl font-bold tracking-wider ${scrolled ? "text-blue-600" : "text-white"}`}>
-              Tick3t
+              Ticket3
             </span>
           </div>
 

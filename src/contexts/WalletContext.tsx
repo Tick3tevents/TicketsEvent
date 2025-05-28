@@ -1,21 +1,38 @@
-import React from 'react';
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import React, { useMemo, type FC, type ReactNode } from 'react';
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import {
+    PhantomWalletAdapter,
+    SolflareWalletAdapter,
+} from '@solana/wallet-adapter-wallets';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import { clusterApiUrl } from '@solana/web3.js';
 
-const endpoint = 'https://api.devnet.solana.com';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
-export function WalletProviderWrapper({ children }) {
-  const wallets = [new PhantomWalletAdapter()];
-
-  return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={false}>
-        <WalletModalProvider>
-          {children}
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
-  );
+interface WalletContextProviderProps {
+    children: ReactNode;
 }
+
+export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
+    const network = (import.meta.env.VITE_SOLANA_NETWORK as WalletAdapterNetwork) || WalletAdapterNetwork.Devnet;
+    const endpoint = useMemo(() => import.meta.env.VITE_RPC_URL || clusterApiUrl(network), [network]);
+
+    const wallets = useMemo(
+        () => [
+            new PhantomWalletAdapter(),
+            new SolflareWalletAdapter(),
+        ],
+        []
+    );
+
+    return (
+        <ConnectionProvider endpoint={endpoint}>
+            <WalletProvider wallets={wallets} autoConnect>
+                <WalletModalProvider>
+                    {children}
+                </WalletModalProvider>
+            </WalletProvider>
+        </ConnectionProvider>
+    );
+};

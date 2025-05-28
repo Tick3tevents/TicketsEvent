@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import {
   Calendar,
@@ -27,9 +26,11 @@ import {
   ChevronRight,
   Star,
   Award,
+  X,
 } from "lucide-react"
 import Navbar from "../components/Navbar"
 import Footer from "../components/Footer"
+import { useWallet } from "@solana/wallet-adapter-react"; // Added import
 
 interface TicketTier {
   id: string
@@ -61,6 +62,8 @@ interface EventFormData {
 }
 
 const NewEvent = () => {
+  const { publicKey } = useWallet(); // Get publicKey from useWallet
+
   const emptyTier: TicketTier = {
     id: Date.now().toString(),
     name: "",
@@ -91,7 +94,7 @@ const NewEvent = () => {
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [apiError, setApiError] = useState<string | null>(null); // State for API errors
+  const [apiError, setApiError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"basic" | "tickets" | "advanced">("basic")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
@@ -206,27 +209,35 @@ const NewEvent = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setApiError(null); // Clear previous API errors
+    setApiError(null);
 
     if (!validateForm()) {
       const firstErrorKey = Object.keys(errors)[0]
-      const element = document.getElementById(firstErrorKey)
-      element?.scrollIntoView({ behavior: "smooth", block: "center" })
+      // Attempt to find the element and scroll, handle potential null
+      const errorElement = document.getElementById(firstErrorKey);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        // Fallback or logging if element not found by ID
+        const firstErrorSection = formData.ticketTiers.some((_, idx) => firstErrorKey.startsWith(`tier-${idx}`)) ? ticketsSectionRef.current : basicSectionRef.current;
+        firstErrorSection?.scrollIntoView({ behavior: "smooth", block: "center"});
+      }
       return
+    }
+
+    if (!publicKey) { // Check if wallet is connected
+        setApiError("Wallet not connected. Please connect your wallet to create an event.");
+        setIsSubmitting(false);
+        return;
     }
 
     setIsSubmitting(true)
 
     try {
       const dataToSend = new FormData();
+      const organizerWalletAddress = publicKey.toBase58(); // Use connected wallet's public key
 
-      // IMPORTANT: Replace with a real connected wallet address
-      const organizerWalletAddress = "YOUR_CONNECTED_WALLET_ADDRESS_HERE"; // <<< Replace this!
-      if (!organizerWalletAddress || organizerWalletAddress === "YOUR_CONNECTED_WALLET_ADDRESS_HERE") {
-        throw new Error("Wallet not connected. Please connect your wallet.");
-      }
       dataToSend.append("organizerWalletAddress", organizerWalletAddress);
-
       dataToSend.append("title", formData.title);
       dataToSend.append("description", formData.description);
       dataToSend.append("category", formData.category);
@@ -239,11 +250,8 @@ const NewEvent = () => {
       dataToSend.append("defaultRoyaltyPercent", formData.defaultRoyaltyPercent.toString());
       dataToSend.append("allowResale", formData.allowResale.toString());
       dataToSend.append("useWhitelist", formData.useWhitelist.toString());
-
-      // Stringify ticketTiers array to send as a single string
       dataToSend.append("ticketTiers", JSON.stringify(formData.ticketTiers));
 
-      // Append image files if selected
       if (bannerInputRef.current?.files?.[0]) {
         dataToSend.append("bannerImage", bannerInputRef.current.files[0]);
       }
@@ -251,25 +259,26 @@ const NewEvent = () => {
         dataToSend.append("logoImage", logoInputRef.current.files[0]);
       }
 
-      const response = await fetch("/api/create", {
+      const response = await fetch("http://localhost:3001/api/create", {
         method: "POST",
-        body: dataToSend, // FormData handles Content-Type automatically
+        body: dataToSend,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.details || "Failed to create event.");
+        throw new Error(errorData.details || `Server error: ${response.status}`);
       }
 
       const result = await response.json();
       console.log("Event created successfully:", result);
-
       setShowSuccessAnimation(true);
 
       setTimeout(() => {
         setShowSuccessAnimation(false);
         setIsSubmitting(false);
-        // Optionally, redirect to the new event's dashboard or event page
+        // Optionally, redirect:
+        // import { useRouter } from 'next/navigation'; // at the top
+        // const router = useRouter(); // in the component
         // router.push(`/event/${result.eventId}`);
       }, 3000);
     } catch (error: any) {
@@ -285,12 +294,40 @@ const NewEvent = () => {
     setTimeout(() => {
       setActiveSection(section)
       setAnimateSection(true)
+      // Scroll to the top of the section
+      let refToScroll = null;
+      if (section === "basic") refToScroll = basicSectionRef;
+      else if (section === "tickets") refToScroll = ticketsSectionRef;
+      else if (section === "advanced") refToScroll = advancedSectionRef;
+      
+      refToScroll?.current?.scrollIntoView({ behavior: "smooth", block: "start"});
+
     }, 300)
   }
 
   useEffect(() => {
     setAnimateSection(true)
   }, [])
+
+  // Fallback for GlobeIcon if not imported from lucide-react
+  const GlobeIconFallback = (props: any) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" x2="22" y1="12" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -299,7 +336,6 @@ const NewEvent = () => {
         <section className="pt-24 pb-12 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 relative overflow-hidden">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_120%,#3b82f6,#1e3a8a)]"></div>
-
             <svg width="100%" height="100%" className="absolute inset-0 opacity-5">
               <pattern id="tickets-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
                 <path
@@ -440,7 +476,7 @@ const NewEvent = () => {
                   ref={basicSectionRef}
                   className={`transition-all duration-500 ease-in-out transform ${
                     activeSection === "basic" ? "block opacity-100 translate-x-0" : "hidden opacity-0 -translate-x-10"
-                  } ${animateSection ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-10"}`}
+                  } ${animateSection && activeSection === "basic" ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-10"}`}
                 >
                   <div className="bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-100">
@@ -518,7 +554,7 @@ const NewEvent = () => {
                             ))}
                           </select>
                           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <ChevronRight className="h-4 w-4 ml-1 opacity-50" />
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
                           </div>
                         </div>
                         {errors.category && <p className="mt-1 text-sm text-red-500">{errors.category}</p>}
@@ -548,7 +584,7 @@ const NewEvent = () => {
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                           >
-                            <GlobeIcon className="h-4 w-4 mr-2" />
+                            <GlobeIconFallback className="h-4 w-4 mr-2" /> {/* Used Fallback */}
                             Virtual Event
                           </button>
                         </div>
@@ -567,7 +603,7 @@ const NewEvent = () => {
                             {formData.locationType === "physical" ? (
                               <MapPin className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200" />
                             ) : (
-                              <GlobeIcon className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200" />
+                              <GlobeIconFallback className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors duration-200" /> /* Used Fallback */
                             )}
                           </div>
                           <input
@@ -702,7 +738,7 @@ const NewEvent = () => {
                         {formData.bannerImage ? (
                           <div className="relative rounded-lg overflow-hidden group">
                             <img
-                              src={formData.bannerImage || "/placeholder.svg"}
+                              src={formData.bannerImage}
                               alt="Banner preview"
                               className="w-full h-48 object-cover transition-transform duration-700 group-hover:scale-105"
                             />
@@ -746,7 +782,7 @@ const NewEvent = () => {
                           {formData.logoImage ? (
                             <div className="relative w-24 h-24 rounded-lg overflow-hidden group">
                               <img
-                                src={formData.logoImage || "/placeholder.svg"}
+                                src={formData.logoImage}
                                 alt="Logo preview"
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               />
@@ -805,9 +841,9 @@ const NewEvent = () => {
 
                 <div
                   ref={ticketsSectionRef}
-                  className={`transition-all duration-500 ease-in-out transform ${
+                   className={`transition-all duration-500 ease-in-out transform ${
                     activeSection === "tickets" ? "block opacity-100 translate-x-0" : "hidden opacity-0 translate-x-10"
-                  } ${animateSection ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"}`}
+                  } ${animateSection && activeSection === "tickets" ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"}`}
                 >
                   <div className="bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-100">
@@ -1049,7 +1085,7 @@ const NewEvent = () => {
                   ref={advancedSectionRef}
                   className={`transition-all duration-500 ease-in-out transform ${
                     activeSection === "advanced" ? "block opacity-100 translate-x-0" : "hidden opacity-0 translate-x-10"
-                  } ${animateSection ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"}`}
+                  } ${animateSection && activeSection === "advanced" ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"}`}
                 >
                   <div className="bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 border-b border-blue-100">
@@ -1201,9 +1237,9 @@ const NewEvent = () => {
                       </button>
                       <button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !publicKey} // Disable if submitting or wallet not connected
                         className={`px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 text-sm font-medium flex items-center shadow-md hover:shadow-lg ${
-                          isSubmitting ? "opacity-70 cursor-not-allowed" : "transform hover:-translate-y-1"
+                          (isSubmitting || !publicKey) ? "opacity-70 cursor-not-allowed" : "transform hover:-translate-y-1"
                         }`}
                       >
                         {isSubmitting ? (
@@ -1249,23 +1285,23 @@ const EyeIcon = (props: any) => (
   </svg>
 )
 
-const GlobeIcon = (props: any) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" x2="22" y1="12" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
-)
+// const GlobeIcon = (props: any) => ( // Original GlobeIcon definition - can be removed if lucide-react provides it
+//   <svg
+//     xmlns="http://www.w3.org/2000/svg"
+//     width="24"
+//     height="24"
+//     viewBox="0 0 24 24"
+//     fill="none"
+//     stroke="currentColor"
+//     strokeWidth="2"
+//     strokeLinecap="round"
+//     strokeLinejoin="round"
+//     {...props}
+//   >
+//     <circle cx="12" cy="12" r="10" />
+//     <line x1="2" x2="22" y1="12" y2="12" />
+//     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+//   </svg>
+// )
 
 export default NewEvent

@@ -35,7 +35,7 @@ export default function Dashboard() {
     setSelectedEventId(eventId)
     setActiveView("eventDetail")
     if (isMobile) {
-      setSidebarOpen(false) // Close sidebar when selecting an event on mobile
+      setSidebarOpen(false)
     }
   }
 
