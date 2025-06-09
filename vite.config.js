@@ -27,4 +27,9 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  server: {
+    port: 5173,
+    host: '0.0.0.0',
+    allowedHosts: ['https://ticketsevent-1.onrender.com'],
+  },
 });
