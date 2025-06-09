@@ -30,6 +30,6 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0',
-    allowedHosts: ['https://ticketsevent-1.onrender.com'],
+    allowedHosts: ['ticketsevent-1.onrender.com'],
   },
 });
