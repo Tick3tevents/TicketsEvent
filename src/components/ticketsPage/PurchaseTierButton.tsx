@@ -53,7 +53,7 @@ export const PurchaseTierButton = ({
         quantity: quantity,
       }
 
-      const response = await fetch("http://localhost:3001/api/purchase", {
+      const response = await fetch("https://ticketsevent.onrender.com/api/purchase", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

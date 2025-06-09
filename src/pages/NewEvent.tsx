@@ -259,7 +259,7 @@ const NewEvent = () => {
         dataToSend.append("logoImage", logoInputRef.current.files[0]);
       }
 
-      const response = await fetch("http://localhost:3001/api/create", {
+      const response = await fetch("https://ticketsevent.onrender.com/api/create", {
         method: "POST",
         body: dataToSend,
       });

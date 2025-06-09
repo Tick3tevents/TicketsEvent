@@ -101,7 +101,7 @@ const TicketsPage = () => {
   const fetchEvents = useCallback(async () => {
     setPageLoading(true);
     try {
-      const response = await fetch("http://localhost:3001/api/events");
+      const response = await fetch("https://ticketsevent.onrender.com/api/events");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const eventsData: IEventFromAPI[] = await response.json();
 

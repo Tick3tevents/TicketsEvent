@@ -69,7 +69,7 @@ export default function MyEvents({ onEventSelect }: MyEventsProps) {
       setError(null)
       try {
         const response = await fetch(
-          `http://localhost:3001/api/events/by-organizer/${organizerWalletAddress}`,
+          `https://ticketsevent.onrender.com/api/events/by-organizer/${organizerWalletAddress}`,
         )
         if (!response.ok) {
           const errorData = await response.json()

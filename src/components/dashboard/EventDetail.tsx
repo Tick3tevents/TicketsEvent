@@ -184,7 +184,7 @@ export default function EventDetail({ eventId }: EventDetailProps) {
       setIsLoading(true)
       setError(null)
       try {
-        const response = await fetch(`http://localhost:3001/api/events/${eventId}`)
+        const response = await fetch(`https://ticketsevent.onrender.com/api/events/${eventId}`)
         if (!response.ok) {
           const errData = await response.json()
           throw new Error(errData.error || `Failed to fetch event: ${response.statusText}`)
@@ -250,7 +250,7 @@ export default function EventDetail({ eventId }: EventDetailProps) {
     if (!eventId) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/events/${eventId}`, {
+      const response = await fetch(`https://ticketsevent.onrender.com/api/events/${eventId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editFormData),
@@ -264,7 +264,7 @@ export default function EventDetail({ eventId }: EventDetailProps) {
       
       // Re-fetch to get the data in the FetchedEventData format
       const fetchEventAfterUpdate = async () => {
-        const res = await fetch(`http://localhost:3001/api/events/${eventId}`);
+        const res = await fetch(`https://ticketsevent.onrender.com/api/events/${eventId}`);
          if (!res.ok) {
           const errData = await res.json();
           throw new Error(errData.error || `Failed to re-fetch event: ${res.statusText}`);
