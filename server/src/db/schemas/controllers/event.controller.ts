@@ -434,3 +434,131 @@ export const getAllPublicEvents = async (): Promise<IEvent[]> => {
     throw error;
   }
 };
+
+export const getDashboardData = async (organizerWalletAddress: string) => {
+  if (!organizerWalletAddress) {
+      throw new Error('Organizer wallet address is required.');
+  }
+
+  try {
+      const now = new Date();
+      const events = await Event.find({ organizerWalletAddress }).lean().exec();
+
+      let totalTicketsSold = 0;
+      let totalRevenueSOL = 0;
+      let totalRoyaltiesEarnedSOL = 0;
+      let activeEventsCount = 0;
+
+      const topPerformingEvents: any[] = [];
+      const upcomingEvents: any[] = [];
+      const issues: any[] = [];
+
+      for (const event of events) {
+          totalTicketsSold += event.totalTicketsSold;
+          totalRevenueSOL += event.totalRevenueSOL;
+          totalRoyaltiesEarnedSOL += event.totalRoyaltiesEarnedSOL;
+
+          const eventEndDateTime = event.endDate && event.endTime
+              ? new Date(`${event.endDate.toISOString().split('T')[0]}T${event.endTime}`)
+              : null;
+
+          // Determine active events
+          if (event.status === 'published' && (!eventEndDateTime || now < eventEndDateTime)) {
+              activeEventsCount++;
+          }
+
+          // Top Performing Events (e.g., based on revenue or tickets sold, for simplicity, let's use revenue here)
+          topPerformingEvents.push({
+              name: event.title,
+              ticketsSold: event.totalTicketsSold,
+              totalCapacity: event.totalCapacity,
+              revenue: `${event.totalRevenueSOL} SOL`,
+              date: new Date(event.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              // Add a percentage sold for the progress bar
+              percentSold: event.totalCapacity > 0 ? (event.totalTicketsSold / event.totalCapacity) * 100 : 0,
+          });
+
+          // Upcoming Events
+          if (event.startDate && now < event.startDate) {
+              const oneDay = 1000 * 60 * 60 * 24;
+              const daysLeft = Math.round(Math.abs((new Date(event.startDate).getTime() - now.getTime()) / oneDay));
+              upcomingEvents.push({
+                  name: event.title,
+                  date: new Date(event.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                  ticketsSold: event.totalTicketsSold,
+                  totalCapacity: event.totalCapacity,
+                  daysLeft: daysLeft,
+                  percentSold: event.totalCapacity > 0 ? (event.totalTicketsSold / event.totalCapacity) * 100 : 0,
+              });
+          }
+
+          // Issues/Flags (example: low ticket sales or almost sold out)
+          const salesPercentage = event.totalCapacity > 0 ? (event.totalTicketsSold / event.totalCapacity) * 100 : 0;
+          if (event.status === 'published') {
+              if (salesPercentage < 20 && event.startDate > now) { // Low sales for upcoming events
+                  issues.push({
+                      event: event.title,
+                      issue: `Low ticket sales (${Math.round(salesPercentage)}%)`,
+                      severity: "high",
+                  });
+              } else if (salesPercentage > 80 && salesPercentage < 100) { // Almost sold out
+                  issues.push({
+                      event: event.title,
+                      issue: `Almost sold out (${Math.round(salesPercentage)}%)`,
+                      severity: "medium",
+                  });
+              }
+          }
+      }
+
+      // Sort top performing events by revenue (descending)
+      topPerformingEvents.sort((a, b) => parseFloat(b.revenue) - parseFloat(a.revenue));
+      // Sort upcoming events by days left (ascending)
+      upcomingEvents.sort((a, b) => a.daysLeft - b.daysLeft);
+
+      // Limit to top 3 for display
+      const top3PerformingEvents = topPerformingEvents.slice(0, 3);
+      const top3UpcomingEvents = upcomingEvents.slice(0, 3);
+
+      return {
+          metrics: [
+              {
+                  title: "Tickets Sold",
+                  value: totalTicketsSold.toLocaleString(),
+                  // Change can be calculated based on previous period data, for mock data, just use a placeholder
+                  change: "+12%", // Placeholder
+                  isPositive: true,
+                  icon: "🎫",
+              },
+              {
+                  title: "Total Revenue",
+                  value: `${totalRevenueSOL.toFixed(2)} SOL`,
+                  change: "+8.5%", // Placeholder
+                  isPositive: true,
+                  icon: "💸",
+              },
+              {
+                  title: "Royalties Earned",
+                  value: `${totalRoyaltiesEarnedSOL.toFixed(2)} SOL`,
+                  change: "+5.2%", // Placeholder
+                  isPositive: true,
+                  icon: "💰",
+              },
+              {
+                  title: "Active Events",
+                  value: activeEventsCount.toLocaleString(),
+                  change: "0%", // Placeholder
+                  isPositive: true,
+                  icon: "📍",
+              },
+          ],
+          topEvents: top3PerformingEvents,
+          upcomingEvents: top3UpcomingEvents,
+          issues: issues,
+      };
+
+  } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      throw error;
+  }
+};

@@ -15,7 +15,8 @@ import {
     updateEventDetails,
     processPurchase,
     type PurchaseInputData,
-    getAllPublicEvents
+    getAllPublicEvents,
+    getDashboardData
 } from "./db/schemas/controllers/event.controller";
 
 connectDB();
@@ -209,4 +210,25 @@ app.post("/api/purchase", async (req: Request, res: Response) => {
 
 httpServer.listen(PORT, () => {
     console.log(`🚀 Backend server is ready http://localhost:${PORT}`);
+});
+
+// @ts-ignore
+app.get("/api/dashboard/:organizerWalletAddress", async (req: Request, res: Response) => {
+  try {
+      const { organizerWalletAddress } = req.params;
+
+      if (!organizerWalletAddress) {
+          return res.status(400).json({ error: "Organizer wallet address is required." });
+      }
+
+      const dashboardInfo = await getDashboardData(organizerWalletAddress);
+      res.status(200).json(dashboardInfo);
+
+  } catch (error: any) {
+      console.error("Error fetching dashboard data:", error);
+      if (error.message.includes('Organizer wallet address is required')) {
+          return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Internal Server Error", details: error.message || "An unexpected error occurred." });
+  }
 });
