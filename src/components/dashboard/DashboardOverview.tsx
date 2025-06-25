@@ -107,7 +107,7 @@ export default function DashboardOverview() {
                 setLoading(true);
                 setError(null); // Clear previous errors
 
-                const response = await fetch(`http://localhost:3001/api/dashboard/${organizerWalletAddress}`);
+                const response = await fetch(`https://ticketsevent.onrender.com/api/dashboard/${organizerWalletAddress}`);
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.details || "Failed to fetch dashboard data.");
